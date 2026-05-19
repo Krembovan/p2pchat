@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>p2pchat</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
+  background:#0d1117;color:#e6edf3;height:100vh;display:flex;flex-direction:column;
+  overflow:hidden
+}
+header{
+  background:#161b22;border-bottom:1px solid #30363d;padding:10px 16px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  -webkit-user-select:none;user-select:none
+}
+header .avatar{
+  width:36px;height:36px;border-radius:50%;background:#1f6feb;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:15px;color:#fff;flex-shrink:0
+}
+header .info{flex:1;min-width:0}
+header .info .name{font-size:15px;font-weight:600}
+header .info .status{font-size:12px;color:#8b949e}
+header .peers{font-size:12px;color:#8b949e;white-space:nowrap}
+header .peers span{color:#58a6ff;font-weight:500}
+header .settings-btn{
+  width:32px;height:32px;border-radius:50%;border:none;background:transparent;
+  color:#8b949e;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0
+}
+header .settings-btn:hover{background:#21262d}
+
+.msgs{
+  flex:1;overflow-y:auto;padding:8px 16px 4px;
+  display:flex;flex-direction:column
+}
+.msgs .msg{
+  max-width:82%;padding:6px 12px;border-radius:12px;
+  font-size:14px;line-height:1.45;word-wrap:break-word
+}
+.msgs .msg .sender{font-size:11px;font-weight:600;margin-bottom:1px;display:none}
+.msgs .msg.first .sender{display:block}
+.msgs .msg.peer{background:#161b22;align-self:flex-start;border:1px solid #21262d;border-bottom-left-radius:4px}
+.msgs .msg.peer .sender{color:#58a6ff}
+.msgs .msg.peer.attached{border-top-left-radius:4px;border-bottom-left-radius:12px;margin-top:1px}
+.msgs .msg.peer.first{margin-top:6px}
+.msgs .msg.self{background:#1f6feb;align-self:flex-end;border-bottom-right-radius:4px}
+.msgs .msg.self.attached{border-top-right-radius:4px;border-bottom-right-radius:12px;margin-top:1px}
+.msgs .msg.self.first{margin-top:6px}
+.msgs .msg.sys{align-self:center;background:transparent;font-size:12px;color:#8b949e;padding:5px 8px;max-width:100%;margin-top:4px}
+.msgs .msg.sys+.msg{animation:msgIn .15s ease-out}
+@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msgs .msg:not(.sys){animation:msgIn .12s ease-out}
+
+.welcome{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#484f58;text-align:center;padding:20px;gap:8px
+}
+.welcome .icon{font-size:48px;margin-bottom:8px}
+.welcome .t{font-size:16px;font-weight:600;color:#8b949e}
+.welcome .s{font-size:13px;max-width:280px;line-height:1.5}
+.welcome .s .hl{color:#58a6ff}
+
+.input-area{
+  display:flex;gap:8px;padding:10px 16px;background:#161b22;
+  border-top:1px solid #30363d;flex-shrink:0;align-items:center
+}
+.input-area input{
+  flex:1;padding:10px 16px;border-radius:20px;border:1px solid #30363d;
+  background:#0d1117;color:#e6edf3;font-size:14px;outline:none;
+  transition:border-color .15s
+}
+.input-area input:focus{border-color:#58a6ff;background:#0d1117}
+.input-area input::placeholder{color:#484f58}
+.input-area button{
+  padding:10px 20px;border-radius:20px;border:none;
+  background:#238636;color:#fff;font-weight:600;font-size:14px;
+  cursor:pointer;transition:background .12s;flex-shrink:0
+}
+.input-area button:hover{background:#2ea043}
+.input-area button:active{background:#1e7a30}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{
+  background:#161b22;border:1px solid #30363d;border-radius:16px;
+  padding:24px;width:90%;max-width:340px;max-height:80vh;overflow-y:auto
+}
+.modal h3{font-size:16px;margin-bottom:16px;color:#f0f6fc}
+.modal label{display:block;font-size:12px;color:#8b949e;margin-bottom:4px}
+.modal input[type=text]{
+  width:100%;padding:8px 12px;border-radius:8px;border:1px solid #30363d;
+  background:#0d1117;color:#e6edf3;font-size:14px;outline:none;margin-bottom:12px
+}
+.modal input[type=text]:focus{border-color:#58a6ff}
+.modal .hint{font-size:11px;color:#484f58;margin-bottom:12px}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end}
+.modal .actions button{
+  padding:8px 16px;border-radius:8px;border:none;font-size:13px;font-weight:500;cursor:pointer
+}
+.modal .actions .cancel{background:#21262d;color:#e6edf3}
+.modal .actions .cancel:hover{background:#30363d}
+.modal .actions .save{background:#238636;color:#fff}
+.modal .actions .save:hover{background:#2ea043}
+.modal .conn-status{margin-top:12px;padding-top:12px;border-top:1px solid #21262d}
+.modal .conn-status .row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:#8b949e}
+.modal .conn-status .row .val{color:#e6edf3;font-family:ui-monospace,monospace;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="avatar" id="avatar">U</div>
+  <div class="info">
+    <div class="name" id="myName">...</div>
+    <div class="status" id="status">connecting...</div>
+  </div>
+  <div class="peers">● <span id="count">0</span></div>
+  <button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<div id="welcome" class="welcome">
+  <div class="icon">💬</div>
+  <div class="t">p2pchat</div>
+  <div class="s">Waiting for peers on the local network&#8230;<br>Make sure others are running <span class="hl">p2pchat</span> too.</div>
+</div>
+
+<div class="msgs" id="msgs" style="display:none"></div>
+
+<div class="input-area">
+  <input id="input" placeholder="Type a message..." autofocus>
+  <button id="send">Send</button>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Settings</h3>
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" placeholder="Name">
+    <label for="connectInput">Manual connect</label>
+    <input type="text" id="connectInput" placeholder="192.168.1.5:9000">
+    <div class="hint">Enter a peer's address if auto-discovery isn't working.</div>
+    <div class="actions">
+      <button class="cancel" id="modalCancel">Close</button>
+      <button class="save" id="modalSave">Save</button>
+    </div>
+    <div class="conn-status">
+      <div class="row"><span>Your name</span><span class="val" id="infoName">-</span></div>
+      <div class="row"><span>P2P port</span><span class="val" id="infoPort">-</span></div>
+      <div class="row"><span>Connected</span><span class="val" id="infoPeers">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let myName = '...';
+
+function showMsgs() {
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('msgs').style.display = 'flex';
+}
+
+function setStatus(text, ok) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.style.color = ok ? '#3fb950' : '#8b949e';
+}
+
+function addMsg(type, name, text) {
+  showMsgs();
+  const m = document.getElementById('msgs');
+  const last = m.lastElementChild;
+  const sameGroup = last && last.classList.contains('msg') &&
+    !last.classList.contains('sys') && last.dataset.s === name;
+
+  const el = document.createElement('div');
+  const kind = type === 'self' ? 'self' : type === 'system' ? 'sys' : 'peer';
+  el.className = 'msg ' + kind;
+  el.dataset.s = name || '';
+
+  if (sameGroup) {
+    el.classList.add('attached');
+  } else {
+    el.classList.add('first');
+    if (type !== 'system') {
+      const s = document.createElement('div');
+      s.className = 'sender';
+      s.textContent = name;
+      el.appendChild(s);
+    }
+  }
+
+  const t = document.createElement('div');
+  t.textContent = text;
+  el.appendChild(t);
+
+  m.appendChild(el);
+  m.scrollTop = m.scrollHeight;
+}
+
+const es = new EventSource('/events');
+es.onmessage = e => {
+  let d;
+  try { d = JSON.parse(e.data) } catch { return }
+  if (d.type === 'peers') {
+    document.getElementById('count').textContent = d.names.length;
+    document.getElementById('infoPeers').textContent = d.names.length;
+    setStatus(d.names.length > 0 ? 'connected' : 'waiting for peers...', d.names.length > 0);
+    return
+  }
+  addMsg(d.type, d.name || '', d.text || '');
+};
+es.onerror = () => { setStatus('connection lost', false) };
+
+document.getElementById('send').onclick = () => {
+  const i = document.getElementById('input');
+  const text = i.value.trim();
+  if (!text) return;
+  fetch('/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'text=' + encodeURIComponent(text)
+  });
+  i.value = '';
+};
+document.getElementById('input').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('send').click();
+};
+
+const modal = document.getElementById('modal');
+document.getElementById('settingsBtn').onclick = () => {
+  document.getElementById('nameInput').value = myName;
+  document.getElementById('connectInput').value = '';
+  document.getElementById('infoName').textContent = myName;
+  modal.classList.add('open');
+  document.getElementById('nameInput').focus();
+};
+document.getElementById('modalCancel').onclick = () => modal.classList.remove('open');
+modal.onclick = e => { if (e.target === modal) modal.classList.remove('open') };
+document.getElementById('modalSave').onclick = () => {
+  const name = document.getElementById('nameInput').value.trim();
+  const addr = document.getElementById('connectInput').value.trim();
+  if (name && name !== myName) {
+    myName = name;
+    fetch('/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'text=' + encodeURIComponent('/name ' + name)
+    });
+    document.getElementById('myName').textContent = name;
+    document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+  }
+  if (addr) {
+    fetch('/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'text=' + encodeURIComponent('/connect ' + addr)
+    });
+  }
+  modal.classList.remove('open');
+};
+document.getElementById('nameInput').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('modalSave').click();
+};
+
+fetch('/info').then(r => r.json()).then(d => {
+  myName = d.name;
+  document.getElementById('myName').textContent = myName;
+  document.getElementById('avatar').textContent = myName.charAt(0).toUpperCase();
+  setStatus('waiting for peers...', false);
+}).catch(() => {});
+</script>
+</body>
+</html>
