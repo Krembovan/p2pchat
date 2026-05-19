@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # p2pchat — установка в одну команду
-# curl -sSL https://example.com/p2pchat/install.sh | bash
+# curl -sSL https://github.com/Krembovan/p2pchat/releases/latest/download/install.sh | bash
 set -euo pipefail
 
 BIN="p2pchat"
@@ -24,7 +24,7 @@ case "$ARCH" in
   *) echo "✗ architecture: $ARCH"; exit 1 ;;
 esac
 
-URL="https://github.com/USER/p2pchat/releases/latest/download/${BIN}-${OS}-${ARCH}"
+URL="https://github.com/Krembovan/p2pchat/releases/latest/download/${BIN}-${OS}-${ARCH}"
 if [ "$OS" = "windows" ]; then URL="${URL}.exe"; fi
 
 if command -v curl &>/dev/null; then
@@ -35,8 +35,8 @@ elif command -v wget &>/dev/null; then
 else
   echo "✗ нужен curl или wget"
   echo ""
-  echo "Вручную: скачай https://github.com/USER/p2pchat/releases/latest"
-  echo "И положи файл ${BIN}-${OS}-${ARCH} рядом с собой как ${BIN}"
+  echo "Вручную: https://github.com/Krembovan/p2pchat/releases/latest"
+  echo "Или: curl -L https://github.com/Krembovan/p2pchat/releases/latest/download/${BIN}-${OS}-${ARCH} -o ${BIN}"
   exit 1
 fi
 
