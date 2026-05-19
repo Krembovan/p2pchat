@@ -205,9 +205,12 @@ func handleConn(conn net.Conn) {
 		if err := dec.Decode(&msg); err != nil {
 			break
 		}
-		if msg.Name == "*" {
+		switch {
+		case msg.Name == "*":
 			hub.Broadcast(Event{Type: "system", Text: msg.Text})
-		} else {
+		case msg.Text == "/typing":
+			hub.Broadcast(Event{Type: "typing", Name: msg.Name})
+		default:
 			hub.Broadcast(Event{Type: "msg", Name: msg.Name, Text: msg.Text})
 		}
 	}
@@ -262,6 +265,15 @@ func dial(addr string) {
 
 func send(text string) {
 	msg := Msg{Name: getSelf(), Text: text}
+	pmu.Lock()
+	for _, p := range peers {
+		p.enc.Encode(msg)
+	}
+	pmu.Unlock()
+}
+
+func sendTyping() {
+	msg := Msg{Name: getSelf(), Text: "/typing"}
 	pmu.Lock()
 	for _, p := range peers {
 		p.enc.Encode(msg)

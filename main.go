@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 //go:embed static/*
@@ -32,7 +35,7 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Subscribe() chan Event {
-	ch := make(chan Event, 256)
+	ch := make(chan Event, 512)
 	h.mu.Lock()
 	h.subs[ch] = struct{}{}
 	h.mu.Unlock()
@@ -69,6 +72,7 @@ func main() {
 	sub, _ := fs.Sub(staticFiles, "static")
 	http.Handle("/", http.FileServer(http.FS(sub)))
 	http.HandleFunc("/send", handleSend)
+	http.HandleFunc("/typing", handleTyping)
 	http.HandleFunc("/events", handleEvents)
 	http.HandleFunc("/info", handleInfo)
 
@@ -109,8 +113,30 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.HasPrefix(text, "/connect ") {
+		go dial(strings.TrimPrefix(text, "/connect "))
+		return
+	}
+
+	if strings.HasPrefix(text, "/") {
+		if result := execCmd(text); result != "" {
+			send(result)
+			hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: result})
+			return
+		}
+	}
+
 	send(text)
 	hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: text})
+}
+
+func handleTyping(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", 405)
+		return
+	}
+	sendTyping()
+	hub.Broadcast(Event{Type: "typing", Name: getSelf()})
 }
 
 func handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -146,4 +172,74 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 		"name":  getSelf(),
 		"peers": peerNames(),
 	})
+}
+
+func execCmd(cmd string) string {
+	parts := strings.SplitN(cmd, " ", 2)
+	switch parts[0] {
+	case "/help":
+		return "Commands: /coinflip, /roll [N], /8ball Q, /shrug, /lenny, /flip, /tableflip, /unflip"
+	case "/coinflip":
+		if rand.Intn(2) == 0 {
+			return "🪙 Орёл"
+		}
+		return "🪙 Решка"
+	case "/roll":
+		max := 100
+		if len(parts) > 1 {
+			if n, err := strconv.Atoi(strings.TrimSpace(parts[1])); err == nil && n > 0 && n <= 100000 {
+				max = n
+			}
+		}
+		return fmt.Sprintf("🎲 %d", rand.Intn(max)+1)
+	case "/8ball":
+		answers := []string{
+			"🎱 Бесспорно", "🎱 Предрешено", "🎱 Никаких сомнений",
+			"🎱 Определённо да", "🎱 Можешь быть уверен",
+			"🎱 Мне кажется — да", "🎱 Вероятнее всего", "🎱 Хорошие перспективы",
+			"🎱 Знаки говорят — да", "🎱 Да",
+			"🎱 Пока не ясно, попробуй снова", "🎱 Спроси позже",
+			"🎱 Лучше не рассказывать", "🎱 Сейчас нельзя предсказать",
+			"🎱 Сконцентрируйся и спроси опять",
+			"🎱 Даже не думай", "🎱 Мой ответ — нет",
+			"🎱 По моим данным — нет", "🎱 Перспективы не очень хорошие",
+			"🎱 Весьма сомнительно",
+		}
+		return answers[rand.Intn(len(answers))]
+	case "/shrug":
+		return "¯\\_(ツ)_/¯"
+	case "/lenny":
+		return "( ͡° ͜ʖ ͡°)"
+	case "/flip":
+		return "(╯°□°)╯︵ ┻━┻"
+	case "/tableflip":
+		return "(╯°□°)╯︵ ┻━┻"
+	case "/unflip":
+		return "┬──┬ ノ( ゜-゜ノ)"
+	case "/date":
+		return time.Now().Format("📅 Mon Jan 2 15:04:05")
+	case "/time":
+		return time.Now().Format("🕐 15:04:05")
+	case "/moon":
+		return "🌙"
+	case "/say":
+		if len(parts) > 1 {
+			return "💬 " + parts[1]
+		}
+		return ""
+	case "/reverse":
+		if len(parts) > 1 {
+			runes := []rune(parts[1])
+			for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+				runes[i], runes[j] = runes[j], runes[i]
+			}
+			return string(runes)
+		}
+		return ""
+	}
+	return ""
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
