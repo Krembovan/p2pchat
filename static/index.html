@@ -2,483 +2,388 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0d1117">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>p2pchat</title>
-<link rel="manifest" href="manifest.json">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--self:#1f6feb;--green:#3fb950}
+:root{--bg:#0a0e0a;--surface:#0d130d;--border:#00ff41;--text:#00ff41;--dim:#006b1a;--dim2:#008a22;--self:#00cc33;--accent:#33ff66;--pink:#ff66b2;--yellow:#ffff66}
 html,body{height:100%}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
-  background:var(--bg);color:var(--text);display:flex;overflow:hidden
+  font-family:'Courier New','Consolas','Liberation Mono',monospace;
+  background:var(--bg);color:var(--text);display:flex;overflow:hidden;
+  font-size:14px;line-height:1.5
+}
+::selection{background:var(--text);color:var(--bg)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
+
+.app{display:flex;flex-direction:column;width:100%;height:100%}
+
+/* ─── TOP BAR ─── */
+.top-bar{
+  display:flex;align-items:center;gap:12px;padding:6px 16px;
+  background:var(--surface);border-bottom:1px solid var(--dim);
+  flex-shrink:0;font-size:12px;user-select:none;min-height:32px
+}
+.top-bar .logo{color:var(--accent);font-weight:700;font-size:13px}
+.top-bar .sep{color:var(--dim)}
+.top-bar .chan{color:var(--text)}
+.top-bar .info{margin-left:auto;color:var(--dim);font-size:11px}
+.top-bar .info span{color:var(--text)}
+.top-bar .settings-btn{
+  background:none;border:1px solid var(--dim);color:var(--dim);
+  cursor:pointer;padding:1px 6px;font-size:11px;font-family:inherit;
+  transition:all .15s
+}
+.top-bar .settings-btn:hover{color:var(--text);border-color:var(--text)}
+
+/* ─── MESSAGES ─── */
+.term{
+  flex:1;overflow-y:auto;padding:8px 16px 4px;
+  display:flex;flex-direction:column;
+  background:var(--bg)
 }
 
-/* ─── LAYOUT ─── */
-.app{display:flex;width:100%;height:100%}
-.sidebar{
-  width:260px;min-width:200px;background:var(--surface);
-  border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0
+.term .welcome{
+  display:flex;flex-direction:column;gap:4px;padding:20px 0;color:var(--dim)
 }
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.term .welcome .t{color:var(--accent);font-weight:700;font-size:16px}
+.term .welcome .s{font-size:12px}
+.term .welcome .hl{color:var(--text)}
 
-/* ─── SIDEBAR ─── */
-.sb-head{
-  padding:16px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;flex-shrink:0
+.term .ln{
+  padding:0;line-height:1.5;word-wrap:break-word;
+  animation:fade .1s ease-out;white-space:pre-wrap
 }
-.sb-head .logo{font-size:20px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
-.sb-head .logo span{color:var(--accent)}
-.sb-head .sb-status{font-size:11px;color:var(--muted);margin-left:auto}
-.sb-head .sb-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:4px}
-.sb-head .sb-status .dot.on{background:var(--green)}
-.sb-users{flex:1;overflow-y:auto;padding:8px 0}
-.sb-user{
-  display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:default;
-  transition:background .1s
-}
-.sb-user:hover{background:rgba(255,255,255,.04)}
-.sb-user .av{
-  width:32px;height:32px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:13px;color:#fff
-}
-.sb-user .un{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-user .ud{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
-.sb-user.self .un{color:var(--accent)}
-.sb-foot{
-  padding:12px 16px;border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer;
-  transition:background .1s
-}
-.sb-foot:hover{background:rgba(255,255,255,.04)}
-.sb-foot .av{
-  width:28px;height:28px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:12px;color:#fff
-}
-.sb-foot .fn{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.sb-foot .settings-btn{
-  background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px
-}
-.sb-foot .settings-btn:hover{color:var(--text)}
+@keyframes fade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+.term .ln .time{color:var(--dim);margin-right:8px}
+.term .ln .name{font-weight:700}
+.term .ln .name.peer{color:var(--yellow)}
+.term .ln .name.self{color:var(--self)}
+.term .ln .chan-tag{color:var(--dim2);margin-right:6px;font-size:12px}
+.term .ln.sys{color:var(--dim2)}
+.term .ln.cmd{color:var(--accent)}
+.term .ln .hlp{color:var(--dim2)}
+.term .ln .hlp-k{color:var(--accent);font-weight:700}
 
-/* ─── CHAT ─── */
-.chat-head{
-  padding:12px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--bg)
+/* ─── PROMPT ─── */
+.prompt-line{
+  display:flex;align-items:center;padding:4px 16px 8px;
+  background:var(--bg);border-top:1px solid var(--dim);flex-shrink:0;gap:0
 }
-.chat-head .ch-info{flex:1;min-width:0}
-.chat-head .ch-title{font-size:15px;font-weight:600}
-.chat-head .ch-sub{font-size:12px;color:var(--muted)}
-.chat-head .ch-actions{display:flex;gap:6px}
-.chat-head .ch-actions button{
-  background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;
-  padding:4px 6px;border-radius:6px;transition:all .15s
+.prompt-line .prompt{
+  color:var(--accent);white-space:nowrap;flex-shrink:0;
+  font-size:13px;margin-right:8px
 }
-.chat-head .ch-actions button:hover{background:rgba(255,255,255,.06);color:var(--text)}
-
-.msgs{
-  flex:1;overflow-y:auto;padding:8px 20px 4px;
-  display:flex;flex-direction:column
+.prompt-line .prompt .ch{color:var(--text)}
+.prompt-line input{
+  flex:1;background:transparent;border:none;color:var(--text);
+  font-family:inherit;font-size:13px;outline:none;caret-color:var(--text);
+  padding:4px 0
 }
-.msgs .msg{
-  max-width:78%;padding:6px 12px;border-radius:12px;
-  font-size:14px;line-height:1.45;word-wrap:break-word
+.prompt-line input::placeholder{color:var(--dim)}
+.prompt-line .cmd-hint{
+  display:none;position:absolute;bottom:100%;left:80px;right:16px;
+  background:var(--surface);border:1px solid var(--dim);padding:8px 10px;
+  font-size:11px;color:var(--dim2);margin-bottom:4px;z-index:10
 }
-.msgs .msg .sender{font-size:11px;font-weight:600;margin-bottom:1px;display:none}
-.msgs .msg.first .sender{display:block}
-.msgs .msg.peer{background:var(--surface);align-self:flex-start;border:1px solid var(--border);border-bottom-left-radius:4px}
-.msgs .msg.peer .sender{color:var(--accent)}
-.msgs .msg.peer.attached{border-top-left-radius:4px;border-bottom-left-radius:12px;margin-top:1px}
-.msgs .msg.peer.first{margin-top:6px}
-.msgs .msg.self{background:var(--self);align-self:flex-end;border-bottom-right-radius:4px}
-.msgs .msg.self.attached{border-top-right-radius:4px;border-bottom-right-radius:12px;margin-top:1px}
-.msgs .msg.self.first{margin-top:6px}
-.msgs .msg .time{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;text-align:right}
-.msgs .msg:hover .time{color:rgba(255,255,255,.5)}
-.msgs .msg.sys{align-self:center;background:transparent;font-size:12px;color:var(--muted);padding:4px 8px;max-width:100%;margin-top:4px}
-.msgs .msg:not(.sys){animation:msgIn .12s ease-out}
-@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-
-.typing-indicator{
-  padding:4px 20px 6px;font-size:12px;color:var(--muted);min-height:22px;
-  font-style:italic;flex-shrink:0;transition:opacity .2s
-}
-
-/* ─── INPUT ─── */
-.input-area{
-  display:flex;gap:8px;padding:10px 20px 14px;
-  background:var(--bg);border-top:1px solid var(--border);flex-shrink:0;align-items:flex-end
-}
-.input-wrap{
-  flex:1;position:relative;display:flex;align-items:flex-end;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;transition:border-color .15s
-}
-.input-wrap:focus-within{border-color:var(--accent)}
-.input-wrap input{
-  flex:1;padding:10px 14px;background:transparent;border:none;
-  color:var(--text);font-size:14px;outline:none;line-height:1.4;resize:none
-}
-.input-wrap input::placeholder{color:#484f58}
-.input-wrap .cmd-hint{
-  display:none;position:absolute;bottom:100%;left:4px;right:4px;
-  background:var(--surface);border:1px solid var(--border);border-radius:8px;
-  padding:6px 10px;font-size:12px;color:var(--muted);margin-bottom:4px;
-  box-shadow:0 -4px 12px rgba(0,0,0,.3)
-}
-.input-wrap .cmd-hint.show{display:block}
-.input-wrap .cmd-hint code{color:var(--accent);font-weight:600}
-.input-area button{
-  padding:10px 18px;border-radius:10px;border:none;
-  background:var(--accent);color:#fff;font-weight:600;font-size:14px;
-  cursor:pointer;transition:background .12s;flex-shrink:0;height:40px
-}
-.input-area button:hover{background:#4c91e6}
-.input-area button:active{background:#3d7fd1}
-
-/* ─── WELCOME ─── */
-.welcome{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  color:#484f58;text-align:center;padding:20px;gap:6px
-}
-.welcome .icon{font-size:40px;margin-bottom:4px}
-.welcome .t{font-size:15px;font-weight:600;color:var(--muted)}
-.welcome .s{font-size:12px;max-width:260px;line-height:1.5}
-.welcome .s .hl{color:var(--accent)}
+.prompt-line .cmd-hint.show{display:block}
 
 /* ─── MODAL ─── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal{
-  background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  padding:20px;width:90%;max-width:320px
+  background:var(--surface);border:1px solid var(--border);padding:20px;
+  width:90%;max-width:340px;font-size:13px
 }
-.modal h3{font-size:15px;margin-bottom:12px}
-.modal label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.modal h3{color:var(--accent);margin-bottom:12px;font-weight:400;font-size:14px}
+.modal label{display:block;color:var(--dim);margin-bottom:2px;font-size:11px}
 .modal input[type=text]{
-  width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);
-  background:var(--bg);color:var(--text);font-size:13px;outline:none;margin-bottom:10px
+  width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--dim);
+  color:var(--text);font-family:inherit;font-size:13px;outline:none;margin-bottom:10px
 }
-.modal input[type=text]:focus{border-color:var(--accent)}
-.modal .hint{font-size:11px;color:#484f58;margin-bottom:10px}
+.modal input[type=text]:focus{border-color:var(--border)}
+.modal .hint{font-size:11px;color:var(--dim);margin-bottom:10px}
 .modal .actions{display:flex;gap:6px;justify-content:flex-end}
 .modal .actions button{
-  padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:500;cursor:pointer
+  padding:6px 14px;border:1px solid var(--dim);background:var(--surface);
+  color:var(--text);cursor:pointer;font-family:inherit;font-size:12px
 }
-.modal .actions .cancel{background:var(--border);color:var(--text)}
-.modal .actions .save{background:var(--accent);color:#fff}
-.modal .conn-info{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-.modal .conn-info .row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;color:var(--muted)}
-.modal .conn-info .row .val{color:var(--text);font-family:ui-monospace,monospace;font-size:11px}
+.modal .actions button:hover{border-color:var(--border)}
+.modal .actions .save{background:var(--border);color:var(--bg);font-weight:700}
+.modal .actions .save:hover{background:var(--accent)}
+.modal .conn-info{margin-top:10px;padding-top:10px;border-top:1px solid var(--dim)}
+.modal .conn-info .row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--dim)}
+.modal .conn-info .row .val{color:var(--text)}
 
-@media(max-width:640px){
-  .sidebar{width:56px;min-width:56px}
-  .sidebar .logo span,.sidebar .un,.sidebar .ud,.sidebar .fn{display:none}
-  .sb-head{padding:12px 10px;justify-content:center}
-  .sb-user{padding:8px 8px;justify-content:center}
-  .sb-foot{padding:10px 8px;justify-content:center}
-  .msgs{padding:8px 10px 4px}
-  .msgs .msg{max-width:92%}
-  .input-area{padding:8px 10px 10px}
-  .chat-head{padding:10px 12px}
-  .chat-head .ch-sub{font-size:11px}
+@media(max-width:600px){
+  body{font-size:12px}
+  .term{padding:4px 8px 2px}
+  .prompt-line{padding:4px 8px 6px}
+  .prompt-line .prompt{font-size:11px}
+  .top-bar{padding:4px 8px;font-size:11px}
 }
 </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sb-head">
-      <div class="logo"><span>✦</span><span>p2pchat</span></div>
-      <div class="sb-status" id="sbStatus"><span class="dot" id="dot"></span><span id="sbCount">0</span></div>
-    </div>
-    <div class="sb-users" id="userList"></div>
-    <div class="sb-foot" id="settingsBtn">
-      <div class="av" id="myAvatar">U</div>
-      <div class="fn" id="myName">...</div>
-      <button class="settings-btn">⚙</button>
+  <div class="top-bar">
+    <span class="logo">[p2p]</span>
+    <span class="sep">│</span>
+    <span class="chan" id="chanDisplay">#general</span>
+    <span class="info">
+      <span id="count">0</span> online
+      <span id="typingInfo" style="margin-left:12px;font-style:italic"></span>
+    </span>
+    <button class="settings-btn" id="settingsBtn">⚙</button>
+  </div>
+
+  <div class="term" id="term">
+    <div class="welcome" id="welcome">
+      <div class="t">╔═ [p2p] ═══════════════╗</div>
+      <div class="t">║  p2pchat v1.2        ║</div>
+      <div class="t">╚═══════════════════════╝</div>
+      <div class="s">Type <span class="hl">/help</span> for commands</div>
+      <div class="s">Waiting for peers...</div>
     </div>
   </div>
 
-  <!-- MAIN -->
-  <div class="main">
-    <div class="chat-head">
-      <div class="ch-info">
-        <div class="ch-title">Group Chat</div>
-        <div class="ch-sub" id="chSub">connecting...</div>
-      </div>
-      <div class="ch-actions">
-        <button id="notifBtn" title="Notifications">🔔</button>
-      </div>
-    </div>
-
-    <div id="welcome" class="welcome">
-      <div class="icon">💬</div>
-      <div class="t">p2pchat</div>
-      <div class="s">Waiting for peers on the local network&#8230;<br>Others should run <span class="hl">p2pchat</span> too.</div>
-    </div>
-
-    <div class="msgs" id="msgs" style="display:none"></div>
-    <div class="typing-indicator" id="typingInd"></div>
-
-    <div class="input-area">
-      <div class="input-wrap">
-        <input id="input" placeholder="Type a message..." autofocus>
-        <div class="cmd-hint" id="cmdHint">
-          Commands: <code>/coinflip</code> <code>/roll 6</code> <code>/8ball</code> <code>/shrug</code> <code>/lenny</code> <code>/flip</code>
-        </div>
-      </div>
-      <button id="send">Send</button>
-    </div>
+  <div class="prompt-line">
+    <span class="prompt" id="prompt">[p2p@<span class="ch">#general</span>]$</span>
+    <input id="input" placeholder="type /help" autofocus spellcheck="false" autocomplete="off">
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <h3>Settings</h3>
-    <label for="nameInput">Your name</label>
+    <h3>// settings</h3>
+    <label>your name</label>
     <input type="text" id="nameInput" placeholder="Name">
-    <label for="connectInput">Manual connect</label>
+    <label>manual connect</label>
     <input type="text" id="connectInput" placeholder="192.168.1.5:9000">
-    <div class="hint">If auto-discovery isn't working.</div>
+    <div class="hint">if auto-discovery doesn't work</div>
     <div class="actions">
-      <button class="cancel" id="modalCancel">Close</button>
-      <button class="save" id="modalSave">Save</button>
+      <button class="cancel" id="modalCancel">close</button>
+      <button class="save" id="modalSave">save</button>
     </div>
     <div class="conn-info">
-      <div class="row"><span>Name</span><span class="val" id="infoName">-</span></div>
-      <div class="row"><span>Status</span><span class="val" id="infoStatus">-</span></div>
-      <div class="row"><span>Peers</span><span class="val" id="infoPeers">0</span></div>
+      <div class="row"><span>name</span><span class="val" id="infoName">-</span></div>
+      <div class="row"><span>peers</span><span class="val" id="infoPeers">0</span></div>
     </div>
   </div>
 </div>
 
 <script>
-// ─── COLORS ───
-const COLORS = [
-  ['#f87171','#dc2626'], ['#fb923c','#ea580c'], ['#fbbf24','#d97706'],
-  ['#a3e635','#65a30d'], ['#4ade80','#16a34a'], ['#34d399','#059669'],
-  ['#2dd4bf','#0d9488'], ['#22d3ee','#0891b2'], ['#38bdf8','#0284c7'],
-  ['#818cf8','#4f46e5'], ['#a78bfa','#7c3aed'], ['#c084fc','#9333ea'],
-  ['#e879f9','#c026d3'], ['#fb7185','#e11d48'], ['#f97316','#c2410c']
-];
-
-function colorFor(name) {
-  let h=0; for(let i=0;i<name.length;i++) h=((h<<5)-h+name.charCodeAt(i))|0;
-  return COLORS[Math.abs(h)%COLORS.length];
-}
-
 // ─── STATE ───
 let myName = '';
+let curChan = 'general';
 let peers = [];
-let notifOn = true;
-let typingTimer = null;
 let typingPeers = {};
+let notifOn = true;
 
-// ─── AVATAR ───
-function updateMyAvatar() {
-  const av = document.getElementById('myAvatar');
-  av.style.background = `linear-gradient(135deg,${colorFor(myName).join(',')})`;
-  av.textContent = myName.charAt(0).toUpperCase();
-  document.getElementById('myName').textContent = myName;
+// ─── COLORS ───
+const NAME_COLORS = {};
+const COLORS = ['#ff66b2','#ffff66','#66ff66','#66ffff','#ff9966','#ff6666','#cc66ff','#66ccff'];
+
+function nameColor(name) {
+  if (!NAME_COLORS[name]) {
+    let h=0; for(let i=0;i<name.length;i++) h=((h<<5)-h+name.charCodeAt(i))|0;
+    NAME_COLORS[name] = COLORS[Math.abs(h)%COLORS.length];
+  }
+  return NAME_COLORS[name];
 }
 
-function addUser(name, isSelf) {
-  const list = document.getElementById('userList');
-  const el = document.createElement('div');
-  el.className = 'sb-user' + (isSelf ? ' self' : '');
-  el.id = 'usr-'+name;
-  const c = colorFor(name);
-  const av = document.createElement('div');
-  av.className = 'av';
-  av.style.background = `linear-gradient(135deg,${c.join(',')})`;
-  av.textContent = name.charAt(0).toUpperCase();
-  el.appendChild(av);
-  const un = document.createElement('div');
-  un.className = 'un';
-  un.textContent = isSelf ? name + ' (you)' : name;
-  el.appendChild(un);
-  const ud = document.createElement('div');
-  ud.className = 'ud';
-  ud.textContent = isSelf ? '' : 'online';
-  el.appendChild(ud);
-  list.appendChild(el);
+// ─── CHANNELS ───
+let channels = new Set(['general']);
+
+function switchChan(name) {
+  curChan = name;
+  document.getElementById('chanDisplay').textContent = '#' + name;
+  document.getElementById('prompt').innerHTML = '[p2p@<span class="ch">#' + name + '</span>]$';
+  // Re-render visible messages
+  renderVisible();
+  document.getElementById('input').focus();
 }
 
-function updateUserList(names) {
-  const list = document.getElementById('userList');
-  list.innerHTML = '';
-  addUser(myName, true);
-  const sorted = [...names].filter(n=>n!==myName).sort();
-  sorted.forEach(n => addUser(n, false));
-  peers = names;
-  document.getElementById('sbCount').textContent = names.length;
-}
-
-// ─── MESSAGES ───
-function showMsgs() {
-  document.getElementById('welcome').style.display = 'none';
-  document.getElementById('msgs').style.display = 'flex';
-}
-
-function addMsg(type, name, text) {
-  showMsgs();
-  const m = document.getElementById('msgs');
-  const last = m.lastElementChild;
-  const sameGroup = last && last.classList.contains('msg') &&
-    !last.classList.contains('sys') && last.dataset.s === name;
-
-  const el = document.createElement('div');
-  const kind = type === 'self' ? 'self' : type === 'system' ? 'sys' : 'peer';
-  el.className = 'msg ' + kind;
-  el.dataset.s = name || '';
-
-  if (sameGroup) {
-    el.classList.add('attached');
-  } else {
-    el.classList.add('first');
-    if (type !== 'system') {
-      const s = document.createElement('div');
-      s.className = 'sender';
-      s.style.color = colorFor(name)[1];
-      s.textContent = name;
-      el.appendChild(s);
+function renderVisible() {
+  const term = document.getElementById('term');
+  for (const el of term.children) {
+    if (el.classList.contains('ln')) {
+      const ch = el.dataset.channel || 'general';
+      el.style.display = (ch === curChan) ? '' : 'none';
     }
   }
+}
 
-  const t = document.createElement('div');
-  t.textContent = text;
-  el.appendChild(t);
+// ─── LOG ───
+function log(type, text, name, channel) {
+  const w = document.getElementById('welcome');
+  if (w) w.style.display = 'none';
 
-  const tm = document.createElement('div');
-  tm.className = 'time';
-  tm.textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  el.appendChild(tm);
+  const term = document.getElementById('term');
+  const el = document.createElement('div');
+  el.className = 'ln';
+  if (channel) el.dataset.channel = channel;
+  if (type === 'sys') { el.classList.add('sys'); el.dataset.channel = 'general' }
+  if (type === 'cmd') el.classList.add('cmd');
 
-  m.appendChild(el);
-  m.scrollTop = m.scrollHeight;
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-  // Desktop notification
+  if (type === 'sys') {
+    el.innerHTML = `<span class="time">[${time}]</span> ${text}`;
+  } else if (type === 'msg' || type === 'self') {
+    const cls = type === 'self' ? 'self' : 'peer';
+    const chTag = (channel && channel !== curChan) ? `<span class="chan-tag">#${channel}</span>` : '';
+    el.innerHTML = `<span class="time">[${time}]</span> ${chTag}<span class="name ${cls}" style="color:${nameColor(name)}">${name}</span> ${text}`;
+  } else if (type === 'cmd') {
+    el.innerHTML = text;
+    handleCmd(text);
+    if (text.startsWith('/join ') || text.startsWith('/leave ') || text === '/channels' || text === '/chs') return;
+  } else {
+    el.textContent = text;
+  }
+
+  term.appendChild(el);
+  term.scrollTop = term.scrollHeight;
+
+  // Show only if current channel
+  const ch = el.dataset.channel || 'general';
+  el.style.display = (ch === curChan) ? '' : 'none';
+
+  // Notifications
   if (notifOn && type === 'msg' && document.hidden) {
     try {
-      const n = new Notification('p2pchat — ' + name, { body: text, silent: true });
+      const n = new Notification('p2pchat', { body: name + ': ' + text, silent: true });
       setTimeout(() => n.close(), 4000);
     } catch(e) {}
   }
 }
 
-// ─── TYPING ───
-let typingTimeout = {};
-
-function showTyping(name) {
-  typingPeers[name] = Date.now();
-  updateTyping();
+// ─── COMMANDS ───
+function handleCmd(cmd) {
+  const parts = cmd.split(' ');
+  if (cmd === '/channels' || cmd === '/chs') {
+    const list = [...channels].sort();
+    log('sys', 'channels: ' + list.map(c => '#' + c).join('  '));
+    return;
+  }
+  if (cmd.startsWith('/join ')) {
+    const ch = parts[1];
+    if (ch && !channels.has(ch)) {
+      channels.add(ch);
+      log('sys', '→ joined #' + ch);
+    }
+    switchChan(ch || 'general');
+    return;
+  }
+  if (cmd.startsWith('/leave ')) {
+    const ch = parts[1];
+    if (ch && channels.has(ch) && ch !== 'general') {
+      channels.delete(ch);
+      log('sys', '→ left #' + ch);
+    }
+    if (curChan === ch) switchChan('general');
+    return;
+  }
 }
-
-function updateTyping() {
-  const now = Date.now();
-  const active = Object.entries(typingPeers).filter(([_,t]) => now - t < 2500).map(([n])=>n);
-  const el = document.getElementById('typingInd');
-  if (active.length === 0) { el.textContent = ''; return }
-  const names = active.join(', ');
-  el.textContent = names + (active.length === 1 ? ' is typing…' : ' are typing…');
-}
-
-setInterval(updateTyping, 500);
 
 // ─── SSE ───
+let es;
 function connectSSE() {
-  const es = new EventSource('/events');
+  if (es) es.close();
+  es = new EventSource('/events');
   es.onmessage = e => {
     let d;
     try { d = JSON.parse(e.data) } catch { return }
+
     if (d.type === 'peers') {
-      updateUserList(d.names || []);
-      const online = (d.names||[]).length;
-      const sub = document.getElementById('chSub');
-      document.getElementById('dot').className = online ? 'dot on' : 'dot';
-      sub.textContent = online ? online + ' online' : 'waiting for peers…';
-      return
+      peers = d.names || [];
+      document.getElementById('count').textContent = peers.length;
+      return;
     }
-    if (d.type === 'typing') { showTyping(d.name); return }
-    addMsg(d.type, d.name || '', d.text || '');
+    if (d.type === 'typing') {
+      typingPeers[d.name] = Date.now();
+      return;
+    }
+    if (d.type === 'system') {
+      log('sys', d.text, '', d.channel);
+      return;
+    }
+    if (d.type === 'cmd') {
+      handleCmd(d.text);
+      return;
+    }
+    if (d.type === 'msg' || d.type === 'self') {
+      log(d.type, d.text || '', d.name || '', d.channel || 'general');
+    }
   };
-  es.onerror = () => {
-    document.getElementById('chSub').textContent = 'connection lost';
-    setTimeout(connectSSE, 2000);
-  };
+  es.onerror = () => { setTimeout(connectSSE, 2000) };
 }
+
+// ─── TYPING ───
+setInterval(() => {
+  const now = Date.now();
+  const active = Object.entries(typingPeers).filter(([_,t]) => now - t < 3000).map(([n])=>n);
+  const el = document.getElementById('typingInfo');
+  el.textContent = active.length ? active.join(', ') + ' typing...' : '';
+}, 500);
 
 // ─── SEND ───
 function doSend() {
   const i = document.getElementById('input');
   const text = i.value.trim();
   if (!text) return;
+
+  // Handle channel commands locally
+  if (text.startsWith('/join ') || text.startsWith('/leave ') || text === '/channels' || text === '/chs') {
+    handleCmd(text);
+    i.value = '';
+    return;
+  }
+
   fetch('/send', {
     method: 'POST',
     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: 'text=' + encodeURIComponent(text)
+    body: 'text=' + encodeURIComponent(text) + '&channel=' + encodeURIComponent(curChan)
   });
   i.value = '';
-  document.getElementById('cmdHint').classList.remove('show');
+  document.getElementById('input').focus();
 }
 
 // ─── TYPING POST ───
-let typingPostTimer = 0;
+let typingTimer = 0;
 function sendTyping() {
   const now = Date.now();
-  if (now - typingPostTimer < 800) return;
-  typingPostTimer = now;
+  if (now - typingTimer < 1000) return;
+  typingTimer = now;
   navigator.sendBeacon('/typing', new URLSearchParams({text:'1'}));
 }
 
 // ─── INIT ───
 fetch('/info').then(r=>r.json()).then(d=>{
   myName = d.name;
-  document.getElementById('myName').textContent = myName;
-  updateMyAvatar();
-  updateUserList(d.peers || []);
+  document.getElementById('infoName').textContent = myName;
+  document.getElementById('infoPeers').textContent = (d.peers||[]).length;
   connectSSE();
 }).catch(()=>{});
 
-// DOM refs
+// ─── INPUT ───
 const input = document.getElementById('input');
-const hint = document.getElementById('cmdHint');
-
 input.onkeydown = e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); return }
-  if (e.key === 'Escape') { hint.classList.remove('show'); input.blur(); return }
-  // Show hint on /
-  if (input.value === '/') { hint.classList.add('show'); return }
-  // Hide hint on backspace clearing
-  if (e.key === 'Backspace' && input.value.length <= 1) { hint.classList.remove('show'); return }
-  // Typing indicator
+  if (e.key === 'Enter') { e.preventDefault(); doSend(); return }
+  if (e.key === 'Tab') { e.preventDefault(); return }
   sendTyping();
 };
-
-input.oninput = () => {
-  if (input.value.startsWith('/')) { hint.classList.add('show') }
-  else { hint.classList.remove('show') }
-};
-
-document.getElementById('send').onclick = doSend;
 
 // Settings
 const modal = document.getElementById('modal');
 document.getElementById('settingsBtn').onclick = () => {
   document.getElementById('nameInput').value = myName;
   document.getElementById('connectInput').value = '';
-  document.getElementById('infoName').textContent = myName;
-  document.getElementById('infoStatus').textContent = peers.length ? 'connected' : 'waiting';
   document.getElementById('infoPeers').textContent = peers.length;
   modal.classList.add('open');
-  document.getElementById('nameInput').focus();
 };
 document.getElementById('modalCancel').onclick = () => modal.classList.remove('open');
 modal.onclick = e => { if (e.target === modal) modal.classList.remove('open') };
@@ -492,7 +397,6 @@ document.getElementById('modalSave').onclick = () => {
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'text=' + encodeURIComponent('/name ' + name)
     });
-    updateMyAvatar();
   }
   if (addr) {
     fetch('/send', {
@@ -502,26 +406,6 @@ document.getElementById('modalSave').onclick = () => {
     });
   }
   modal.classList.remove('open');
-};
-document.getElementById('nameInput').onkeydown = e => {
-  if (e.key === 'Enter') document.getElementById('modalSave').click();
-};
-
-// Notifications toggle
-document.getElementById('notifBtn').onclick = () => {
-  if (!('Notification' in window)) return;
-  if (Notification.permission === 'granted') {
-    notifOn = !notifOn;
-    document.getElementById('notifBtn').textContent = notifOn ? '🔔' : '🔕';
-  } else if (Notification.permission !== 'denied') {
-    Notification.requestPermission().then(p => {
-      notifOn = p === 'granted';
-      document.getElementById('notifBtn').textContent = notifOn ? '🔔' : '🔕';
-    });
-  } else {
-    notifOn = false;
-    document.getElementById('notifBtn').textContent = '🔕';
-  }
 };
 </script>
 </body>

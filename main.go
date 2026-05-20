@@ -19,10 +19,11 @@ import (
 var staticFiles embed.FS
 
 type Event struct {
-	Type  string   `json:"type"`
-	Name  string   `json:"name,omitempty"`
-	Text  string   `json:"text,omitempty"`
-	Names []string `json:"names,omitempty"`
+	Type    string   `json:"type"`
+	Name    string   `json:"name,omitempty"`
+	Text    string   `json:"text,omitempty"`
+	Names   []string `json:"names,omitempty"`
+	Channel string   `json:"channel,omitempty"`
 }
 
 type Hub struct {
@@ -91,8 +92,8 @@ func main() {
 	}
 	_, p, _ := net.SplitHostPort(ln.Addr().String())
 
-	fmt.Printf("  ✦ p2pchat — %s\n", getSelf())
-	fmt.Printf("  → http://localhost:%s\n\n", p)
+	fmt.Printf("\033[32m p2pchat — %s\033[0m\n", getSelf())
+	fmt.Printf("\033[32m → http://localhost:%s\033[0m\n\n", p)
 
 	http.Serve(ln, nil)
 }
@@ -105,6 +106,10 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 	text := strings.TrimSpace(r.FormValue("text"))
 	if text == "" {
 		return
+	}
+	channel := r.FormValue("channel")
+	if channel == "" {
+		channel = "general"
 	}
 
 	if strings.HasPrefix(text, "/name ") {
@@ -119,15 +124,19 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.HasPrefix(text, "/") {
+		if strings.HasPrefix(text, "/join ") || strings.HasPrefix(text, "/leave ") || text == "/channels" || text == "/chs" {
+			hub.Broadcast(Event{Type: "cmd", Text: text})
+			return
+		}
 		if result := execCmd(text); result != "" {
-			send(result)
-			hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: result})
+			send(result, channel)
+			hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: result, Channel: channel})
 			return
 		}
 	}
 
-	send(text)
-	hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: text})
+	send(text, channel)
+	hub.Broadcast(Event{Type: "self", Name: getSelf(), Text: text, Channel: channel})
 }
 
 func handleTyping(w http.ResponseWriter, r *http.Request) {
@@ -178,12 +187,26 @@ func execCmd(cmd string) string {
 	parts := strings.SplitN(cmd, " ", 2)
 	switch parts[0] {
 	case "/help":
-		return "Commands: /coinflip, /roll [N], /8ball Q, /shrug, /lenny, /flip, /tableflip, /unflip"
+		return "╔═ commands ═╗\n" +
+			"  /help      — this\n" +
+			"  /join <ch> — join channel\n" +
+			"  /leave <ch>— leave channel\n" +
+			"  /chs       — list channels\n" +
+			"  /name <n>  — change name\n" +
+			"  /coinflip  — flip a coin\n" +
+			"  /roll [N]  — random 1-N\n" +
+			"  /8ball <q> — magic 8ball\n" +
+			"  /shrug     — ¯\\_(ツ)_/¯\n" +
+			"  /lenny     — ( ͡° ͜ʖ ͡°)\n" +
+			"  /flip      — flip a table\n" +
+			"  /date      — current date\n" +
+			"  /say <t>   — echo text\n" +
+			"  /reverse <t>— reversed"
 	case "/coinflip":
 		if rand.Intn(2) == 0 {
-			return "🪙 Орёл"
+			return "🪙 heads"
 		}
-		return "🪙 Решка"
+		return "🪙 tails"
 	case "/roll":
 		max := 100
 		if len(parts) > 1 {
@@ -194,39 +217,28 @@ func execCmd(cmd string) string {
 		return fmt.Sprintf("🎲 %d", rand.Intn(max)+1)
 	case "/8ball":
 		answers := []string{
-			"🎱 Бесспорно", "🎱 Предрешено", "🎱 Никаких сомнений",
-			"🎱 Определённо да", "🎱 Можешь быть уверен",
-			"🎱 Мне кажется — да", "🎱 Вероятнее всего", "🎱 Хорошие перспективы",
-			"🎱 Знаки говорят — да", "🎱 Да",
-			"🎱 Пока не ясно, попробуй снова", "🎱 Спроси позже",
-			"🎱 Лучше не рассказывать", "🎱 Сейчас нельзя предсказать",
-			"🎱 Сконцентрируйся и спроси опять",
-			"🎱 Даже не думай", "🎱 Мой ответ — нет",
-			"🎱 По моим данным — нет", "🎱 Перспективы не очень хорошие",
-			"🎱 Весьма сомнительно",
+			"🎱 definitely yes", "🎱 without a doubt", "🎱 most likely",
+			"🎱 outlook good", "🎱 yes", "🎱 ask again later",
+			"🎱 better not tell you", "🎱 cannot predict now",
+			"🎱 concentrate and ask again", "🎱 don't count on it",
+			"🎱 my reply is no", "🎱 outlook not so good",
+			"🎱 very doubtful",
 		}
 		return answers[rand.Intn(len(answers))]
 	case "/shrug":
 		return "¯\\_(ツ)_/¯"
 	case "/lenny":
 		return "( ͡° ͜ʖ ͡°)"
-	case "/flip":
-		return "(╯°□°)╯︵ ┻━┻"
-	case "/tableflip":
+	case "/flip", "/tableflip":
 		return "(╯°□°)╯︵ ┻━┻"
 	case "/unflip":
 		return "┬──┬ ノ( ゜-゜ノ)"
 	case "/date":
-		return time.Now().Format("📅 Mon Jan 2 15:04:05")
-	case "/time":
-		return time.Now().Format("🕐 15:04:05")
-	case "/moon":
-		return "🌙"
+		return time.Now().Format("Mon Jan 2 15:04:05")
 	case "/say":
 		if len(parts) > 1 {
-			return "💬 " + parts[1]
+			return parts[1]
 		}
-		return ""
 	case "/reverse":
 		if len(parts) > 1 {
 			runes := []rune(parts[1])
@@ -235,7 +247,6 @@ func execCmd(cmd string) string {
 			}
 			return string(runes)
 		}
-		return ""
 	}
 	return ""
 }

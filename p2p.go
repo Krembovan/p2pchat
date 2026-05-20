@@ -13,8 +13,9 @@ import (
 const discPort = 42069
 
 type Msg struct {
-	Name string `json:"n"`
-	Text string `json:"t"`
+	Name    string `json:"n"`
+	Text    string `json:"t"`
+	Channel string `json:"c,omitempty"`
 }
 
 type Peer struct {
@@ -191,7 +192,7 @@ func handleConn(conn net.Conn) {
 		pmu.Lock()
 		for _, op := range peers {
 			if op.addr != addr {
-				op.enc.Encode(Msg{"*", join})
+				op.enc.Encode(Msg{Name: "*", Text: join})
 			}
 		}
 		pmu.Unlock()
@@ -207,11 +208,11 @@ func handleConn(conn net.Conn) {
 		}
 		switch {
 		case msg.Name == "*":
-			hub.Broadcast(Event{Type: "system", Text: msg.Text})
+			hub.Broadcast(Event{Type: "system", Text: msg.Text, Channel: msg.Channel})
 		case msg.Text == "/typing":
 			hub.Broadcast(Event{Type: "typing", Name: msg.Name})
 		default:
-			hub.Broadcast(Event{Type: "msg", Name: msg.Name, Text: msg.Text})
+			hub.Broadcast(Event{Type: "msg", Name: msg.Name, Text: msg.Text, Channel: msg.Channel})
 		}
 	}
 
@@ -226,7 +227,7 @@ func handleConn(conn net.Conn) {
 	if canAnnounce(p.name) {
 		leave := fmt.Sprintf("%s left", p.name)
 		for _, op := range list {
-			op.enc.Encode(Msg{"*", leave})
+			op.enc.Encode(Msg{Name: "*", Text: leave})
 		}
 		hub.Broadcast(Event{Type: "system", Text: leave})
 	}
@@ -263,8 +264,8 @@ func dial(addr string) {
 	handleConn(conn)
 }
 
-func send(text string) {
-	msg := Msg{Name: getSelf(), Text: text}
+func send(text, channel string) {
+	msg := Msg{Name: getSelf(), Text: text, Channel: channel}
 	pmu.Lock()
 	for _, p := range peers {
 		p.enc.Encode(msg)
